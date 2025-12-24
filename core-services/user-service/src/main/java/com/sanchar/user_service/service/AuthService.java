@@ -56,19 +56,7 @@ public class AuthService {
         return "User Registered. Verify OTP.";
     }
 
-//    public String verifyOtp(String email, String otp) {
-//        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-//        UserAuth auth = userAuthRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException("Auth error"));
-//
-//        if (auth.isAccountEnabled()) return "Already Verified";
-//        if (!auth.getOtp().equals(otp) || auth.getOtpExpiry().isBefore(LocalDateTime.now())) {
-//            throw new RuntimeException("Invalid/Expired OTP");
-//        }
-//        auth.setAccountEnabled(true);
-//        auth.setOtp(null);
-//        userAuthRepository.save(auth);
-//        return "Account Verified. You can login via /auth/login.";
-//    }
+
 
     public String verifyOtp(String email, String otp) {
         User user = userRepository.findByEmail(email)

@@ -49,7 +49,7 @@ public class RestAuthenticationSuccessHandler implements AuthenticationSuccessHa
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", domainUser.getId());
-        claims.put("email", domainUser.getEmail());
+//        claims.put("email", domainUser.getEmail());
 
         String accessToken = jwtUtils.generateToken(username, claims, jwtSecret, accessExp);
         String refreshToken = UUID.randomUUID().toString();

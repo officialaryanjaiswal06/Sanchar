@@ -26,11 +26,7 @@ public class JwtUtils {
                 .compact();
     }
 
-    // 2. Validate Token
-//    public boolean validateToken(String token, String username, String secret) {
-//        final String extractedUsername = extractUsername(token, secret);
-//        return (extractedUsername.equals(username) && !isTokenExpired(token, secret));
-//    }
+
     public boolean validateToken(String token, String secret) {
         try {
             Jwts.parser()

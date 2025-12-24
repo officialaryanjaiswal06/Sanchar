@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Spring Boot Parent -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.6</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <groupId>com.sanchar</groupId>
+    <artifactId>sanchar-backend</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>sanchar-backend</name>
+    <description>Root Project for Sanchar Event-Driven Architecture</description>
+
+    <!-- Project Sub-Modules Definition -->
+    <!-- Maven matches these strings to folder names -->
+    <modules>
+        <!--        &lt;!&ndash; Infrastructure Layer &ndash;&gt;-->
+        <module>infra-services/discovery-server</module>
+        <module>infra-services/api-gateway</module>
+
+        <!--        &lt;!&ndash; Core Business Layer &ndash;&gt;-->
+        <module>core-services/user-service</module>
+        <!--        <module>core-services/chat-service</module>-->
+        <module>core-services/notification-service</module>
+        <module>core-services/file-service</module>
+
+        <!--        &lt;!&ndash; Shared Kernel &ndash;&gt;-->
+        <module>shared/common-library</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Global Dependency Versions -->
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+    </properties>
+
+    <!-- Dependency Management forces children to use these versions -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.sanchar</groupId>
+                <artifactId>common-library</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

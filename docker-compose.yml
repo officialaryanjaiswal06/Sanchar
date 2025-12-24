@@ -1,0 +1,151 @@
+#version: '3.8'
+#services:
+#  mongodb:
+#    image: mongo:7.0.5
+#    container_name: sanchar-mongo
+#    ports:
+#      - "27017:27017"
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: admin
+#      MONGO_INITDB_ROOT_PASSWORD: password
+#    volumes:
+#      - mongo_data:/data/db
+#    networks:
+#      - sanchar-net
+#
+#  redis:
+#    image: redis:alpine
+#    container_name: sanchar-redis
+#    ports:
+#      - "6379:6379" # Standard Redis Port
+#    command: redis-server --appendonly yes # Enable data persistence
+#    volumes:
+#      - redis_data:/data
+#    networks:
+#      - sanchar-net
+#
+#  rabbitmq:
+#    image: rabbitmq:3.12-management
+#    container_name: sanchar-rabbitmq
+#    ports:
+#      - "5672:5672"
+#      - "15672:15672"
+#    environment:
+#      RABBITMQ_DEFAULT_USER: guest
+#      RABBITMQ_DEFAULT_PASS: guest
+#    volumes:
+#      - rabbitmq_data:/var/lib/rabbitmq
+#    networks:
+#      - sanchar-net
+#
+#    zipkin:
+#      image: openzipkin/zipkin
+#      container_name: sanchar-zipkin
+#      ports:
+#        - "9411:9411"
+#      networks:
+#        - sanchar-net
+#
+#    minio:
+#      image: minio/minio
+#      container_name: sanchar-minio
+#      ports:
+#        - "9000:9000" # API Port
+#        - "9001:9001" # Web Console Port
+#      environment:
+#        MINIO_ROOT_USER: minioadmin
+#        MINIO_ROOT_PASSWORD: minioadmin
+#      command: server /data --console-address ":9001"
+#      volumes:
+#        - minio_data:/data
+#      networks:
+#        - sanchar-net
+#
+#volumes:
+#  mongo_data:
+#  redis_data:
+#  rabbitmq_data:
+#  minio_data:
+#
+#networks:
+#  sanchar-net:
+#    driver: bridge
+
+version: '3.8'
+
+services:
+  ## 1. Database (MongoDB)
+  mongodb:
+    image: mongo:7.0.5
+    container_name: sanchar-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - sanchar-net
+
+  ## 2. Caching (Redis)
+  redis:
+    image: redis:alpine
+    container_name: sanchar-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - sanchar-net
+
+  ## 3. Broker (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: sanchar-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - sanchar-net
+
+  ## 4. Tracing (Zipkin)
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: sanchar-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - sanchar-net
+
+  ## 5. Storage (MinIO)
+  minio:
+    image: minio/minio
+    container_name: sanchar-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - sanchar-net
+
+volumes:
+  mongo_data:
+  redis_data:
+  rabbitmq_data:
+  minio_data:
+
+networks:
+  sanchar-net:
+    driver: bridge

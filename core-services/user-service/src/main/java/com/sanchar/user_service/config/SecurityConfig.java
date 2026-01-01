@@ -42,6 +42,8 @@ public class SecurityConfig {
                         // Authentication comes from InternalFilter processing the Header.
 //                        .requestMatchers("/users/**").authenticated()
                                 .requestMatchers(HttpMethod.PUT, "/users/**").permitAll()
+//                                .requestMatchers("/friends/**").authenticated()
+                                .requestMatchers("/friends/internal/**").permitAll()
                                 // 3. Catch all
                         .anyRequest().authenticated()
                 )

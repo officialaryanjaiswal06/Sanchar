@@ -2,10 +2,14 @@ package com.sanchar.user_service.service;
 
 
 import com.sanchar.user_service.dto.UserProfileResponse;
+import com.sanchar.user_service.dto.UserSearchDTO;
 import com.sanchar.user_service.model.User;
 import com.sanchar.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,5 +42,20 @@ public class UserService {
                 .profilePictureUrl(user.getProfilePictureUrl())
                 .joinedAt(user.getCreatedAt())
                 .build();
+    }
+
+    public List<UserSearchDTO> searchUsers(String myUserId, String query) {
+        // 1. Fetch Users from DB using the Repo
+        List<User> users = userRepository.searchUsers(myUserId, query);
+
+        // 2. Map to DTOs
+        return users.stream()
+                .map(user -> UserSearchDTO.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .fullName(user.getFullName())
+                        .profilePicture(user.getProfilePictureUrl())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

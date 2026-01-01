@@ -4,6 +4,7 @@ import com.sanchar.file_service.client.UserClient;
 import com.sanchar.file_service.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,8 @@ import java.util.Map;
 public class FileController {
     private final FileStorageService fileStorageService;
     private  final UserClient userClient;
-
+    @Value("${gateway.secret}")
+    private String gatewaySecret;
     @PostMapping(value = "/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadProfileImage(
             @RequestParam("file") MultipartFile file,
@@ -39,7 +41,8 @@ public class FileController {
             // 2. Call User Service (Sync)
             if (userId != null && !userId.isEmpty()) {
                 log.info("Updating User Service for ID: {}", userId);
-                userClient.updateProfilePic(userId, Map.of("url", fileUrl));
+                userClient.updateProfilePic(userId, Map.of("url", fileUrl),gatewaySecret, // <--- Secret Key
+                        "system-file-service");
             }
 
             // 3. Return Success

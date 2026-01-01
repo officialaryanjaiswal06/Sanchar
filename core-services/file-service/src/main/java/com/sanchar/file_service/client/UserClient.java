@@ -6,6 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.Map;
 
@@ -13,5 +14,10 @@ import java.util.Map;
 @FeignClient(name = "user-service", configuration = InternalFeignConfig.class)
 public interface UserClient {
     @PutMapping("/users/{userId}/profile-picture")
-    ApiResponse<Void> updateProfilePic(@PathVariable("userId") String userId, @RequestBody Map<String, String> body);
+    ApiResponse<Void> updateProfilePic(@PathVariable("userId") String userId, @RequestBody Map<String, String> body
+        , @RequestHeader("X-Internal-Secret") String secret,
+                                       @RequestHeader("X-Authenticated-User") String user
+    );
+
+
 }

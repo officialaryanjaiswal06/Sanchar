@@ -2,6 +2,7 @@ package com.sanchar.user_service.controller;
 
 
 import com.sanchar.common_library.dto.ApiResponse;
+import com.sanchar.user_service.dto.UserProfileResponse;
 import com.sanchar.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,5 +28,12 @@ public class UserController {
         userService.updateProfilePicture(userId, imageUrl);
 
         return ResponseEntity.ok(ApiResponse.success("Profile updated", null));
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(@PathVariable String userId) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Profile Fetched", userService.getUserProfile(userId))
+        );
     }
 }

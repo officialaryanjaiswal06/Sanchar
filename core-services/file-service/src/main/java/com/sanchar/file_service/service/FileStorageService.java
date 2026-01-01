@@ -13,13 +13,67 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.util.UUID;
-
+//
+//@Service
+//@Slf4j
+//@RequiredArgsConstructor
+//public class FileStorageService {
+//    private final MinioClient minioClient;
+//
+//
+//    @Value("${minio.bucket-name}")
+//    private String bucketName;
+//
+//    @Value("${minio.url}")
+//    private String minioUrl;
+//
+//    public String uploadProfilePicture(MultipartFile file, String userId) {
+//        try {
+//            // 1. Ensure Bucket Exists
+//            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+//            if (!found) {
+//                log.info("Bucket '{}' not found. Creating it...", bucketName);
+//                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+//
+//            }
+//
+//            // 2. Generate Unique Filename (user-ID + random UUID + extension)
+//            String originalFilename = file.getOriginalFilename();
+//            String extension = originalFilename != null && originalFilename.contains(".")
+//                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
+//                    : ".jpg"; // default to jpg if unknown
+//
+//            // Format: user-123-ab12cd34.jpg
+//            String newFilename = "user-" + userId + "-" + UUID.randomUUID().toString().substring(0, 8) + extension;
+//
+//            // 3. Upload File
+//            InputStream inputStream = file.getInputStream();
+//            minioClient.putObject(
+//                    PutObjectArgs.builder()
+//                            .bucket(bucketName)
+//                            .object(newFilename)
+//                            .stream(inputStream, file.getSize(), -1)
+//                            .contentType(file.getContentType()) // "image/jpeg", "image/png"
+//                            .build()
+//            );
+//
+//            log.info("File uploaded successfully: {}", newFilename);
+//
+//
+//            return minioUrl + "/" + bucketName + "/" + newFilename;
+//
+//        } catch (Exception e) {
+//            log.error("MinIO Upload Error: ", e);
+//            throw new RuntimeException("Image upload failed: " + e.getMessage());
+//        }
+//    }
+//}
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class FileStorageService {
-    private final MinioClient minioClient;
 
+    private final MinioClient minioClient;
 
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -29,41 +83,31 @@ public class FileStorageService {
 
     public String uploadProfilePicture(MultipartFile file, String userId) {
         try {
-            // 1. Ensure Bucket Exists
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-            if (!found) {
-                log.info("Bucket '{}' not found. Creating it...", bucketName);
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-
-            }
-
-            // 2. Generate Unique Filename (user-ID + random UUID + extension)
+            // 1. Generate clean filename
             String originalFilename = file.getOriginalFilename();
-            String extension = originalFilename != null && originalFilename.contains(".")
-                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                    : ".jpg"; // default to jpg if unknown
-
-            // Format: user-123-ab12cd34.jpg
+            String extension = ".jpg";
+            if (originalFilename != null && originalFilename.lastIndexOf(".") > 0) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
             String newFilename = "user-" + userId + "-" + UUID.randomUUID().toString().substring(0, 8) + extension;
 
-            // 3. Upload File
-            InputStream inputStream = file.getInputStream();
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(newFilename)
-                            .stream(inputStream, file.getSize(), -1)
-                            .contentType(file.getContentType()) // "image/jpeg", "image/png"
-                            .build()
-            );
+            // 2. Upload Stream (No need to check bucketExists anymore)
+            try (InputStream inputStream = file.getInputStream()) {
+                minioClient.putObject(
+                        PutObjectArgs.builder()
+                                .bucket(bucketName)
+                                .object(newFilename)
+                                .stream(inputStream, file.getSize(), -1)
+                                .contentType(file.getContentType())
+                                .build()
+                );
+            }
 
-            log.info("File uploaded successfully: {}", newFilename);
-
-
+            // 3. Return URL
             return minioUrl + "/" + bucketName + "/" + newFilename;
 
         } catch (Exception e) {
-            log.error("MinIO Upload Error: ", e);
+            log.error("Upload failed", e);
             throw new RuntimeException("Image upload failed: " + e.getMessage());
         }
     }

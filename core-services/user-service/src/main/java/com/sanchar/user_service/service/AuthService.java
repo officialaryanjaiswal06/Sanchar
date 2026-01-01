@@ -1,8 +1,11 @@
 package com.sanchar.user_service.service;
 
 import com.sanchar.common_library.event.UserRegisteredEvent;
+import com.sanchar.common_library.utils.JwtUtils;
 import com.sanchar.user_service.config.RabbitMQConfig;
+import com.sanchar.user_service.dto.AuthResponse;
 import com.sanchar.user_service.dto.RegisterRequest;
+import com.sanchar.user_service.dto.RegisterResponse;
 import com.sanchar.user_service.model.Gender;
 import com.sanchar.user_service.model.OtpType;
 import com.sanchar.user_service.model.User;
@@ -12,20 +15,31 @@ import com.sanchar.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service @RequiredArgsConstructor @Slf4j
 public class AuthService {
+    private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
     private final UserAuthRepository userAuthRepository;
     private final PasswordEncoder passwordEncoder;
     private final RabbitTemplate rabbitTemplate;
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+    @Value("${jwt.access.expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh.expiration}")
+    private long refreshTokenExpiration;
 
     @Transactional
-    public String register(RegisterRequest req) {
+    public RegisterResponse register(RegisterRequest req) {
         if (userRepository.existsByUsername(req.getUsername())) throw new RuntimeException("Username taken");
         if (userRepository.existsByEmail(req.getEmail())) throw new RuntimeException("Email taken");
 
@@ -53,12 +67,13 @@ public class AuthService {
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.ROUTING_KEY,
                 new UserRegisteredEvent(user.getId(), user.getEmail(), user.getFullName(), user.getUsername(), otp));
 
-        return "User Registered. Verify OTP.";
+//        return "User Registered. Verify OTP.";
+      return   new RegisterResponse(user.getId(), user.getEmail(), "User Registered. Verify OTP.");
     }
 
 
 
-    public String verifyOtp(String email, String otp) {
+    public AuthResponse verifyOtp(String email, String otp) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         UserAuth auth = userAuthRepository.findByUserId(user.getId())
@@ -70,7 +85,8 @@ public class AuthService {
         }
 
         if (auth.isAccountEnabled()) {
-            return "Account is already verified.";
+//            return "Account is already verified.";
+            throw new RuntimeException("Account is already verified. Please login.");
         }
 
         // 2. Check Expiry
@@ -101,7 +117,8 @@ public class AuthService {
         auth.setAttemptCount(0); // Reset on success
         userAuthRepository.save(auth);
 
-        return "Account verified successfully. You can login now.";
+//        return "Account verified successfully. You can login now.";
+        return generateTokensForUser(user);
     }
 
 
@@ -148,5 +165,32 @@ public class AuthService {
         // 3. Save to MongoDB
         userRepository.save(user);
     }
+    private AuthResponse generateTokensForUser(User user) {
+        // 1. Prepare Claims (Match what you did in SuccessHandler)
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
 
+        // 2. Call common-library methods passing the SECRET and EXPIRATION
+        String accessToken = jwtUtils.generateToken(
+                user.getUsername(),
+                claims,
+                jwtSecret,
+                accessTokenExpiration
+        );
+
+        // Assuming Refresh token is just a long-lived JWT (based on your JwtUtils structure)
+        String refreshToken = jwtUtils.generateToken(
+                user.getUsername(),
+                new HashMap<>(), // No specific claims needed for refresh usually
+                jwtSecret,
+                refreshTokenExpiration
+        );
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(user.getId())
+                .username(user.getUsername())
+                .build();
+    }
 }

@@ -28,7 +28,7 @@
 
         <!--        &lt;!&ndash; Core Business Layer &ndash;&gt;-->
         <module>core-services/user-service</module>
-        <!--        <module>core-services/chat-service</module>-->
+        <module>core-services/chat-service</module>
         <module>core-services/notification-service</module>
         <module>core-services/file-service</module>
 

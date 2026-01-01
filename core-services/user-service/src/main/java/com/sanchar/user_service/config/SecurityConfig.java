@@ -20,8 +20,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final CustomUserDetailsService userDetailsService;
-    private final JwtAuthenticationFilter jwtFilter;
+    // CHANGE 1: Use InternalFilter instead of JwtAuthenticationFilter
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthEntryPoint unauthorizedHandler;
     private final RestAuthenticationSuccessHandler successHandler;
     private final RestAuthenticationFailureHandler failureHandler;
@@ -33,22 +35,30 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Auth routes are open (handled by InternalFilter bypass + AuthController)
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/users/**").permitAll()
+
+                        // 2. INTERNAL Endpoints: now REQUIRE 'authenticated()'
+                        // Authentication comes from InternalFilter processing the Header.
+//                        .requestMatchers("/users/**").authenticated()
+                                .requestMatchers(HttpMethod.PUT, "/users/**").permitAll()
+                                // 3. Catch all
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
-                // STANDARD FORM LOGIN INTERCEPTOR
+                // Form Login configuration allows the /auth/login endpoint to generate JWTs
                 .formLogin(form -> form
-                        .loginProcessingUrl("/auth/login") // Input: application/x-www-form-urlencoded
+                        .loginProcessingUrl("/auth/login")
                         .successHandler(successHandler)
                         .failureHandler(failureHandler)
                         .permitAll()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // CHANGE 2: Add InternalFilter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
+    // Keep Authentication beans (Needed for Login functionality)
     @Bean public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider p = new DaoAuthenticationProvider();
         p.setUserDetailsService(userDetailsService);

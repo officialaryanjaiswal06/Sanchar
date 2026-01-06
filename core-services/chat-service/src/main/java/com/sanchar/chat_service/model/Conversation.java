@@ -20,6 +20,8 @@ public class Conversation {
     private String otherUserId;   // Them
     private String roomId;
 
+    private String lastMessageSenderId;
+
     private String lastMessage;
     private Instant lastMessageTime;
 }

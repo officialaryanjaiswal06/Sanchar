@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitConfig {
     public static final String CHAT_EXCHANGE = "sanchar.chat.exchange";
     public static final String DB_QUEUE = "sanchar.chat.db.write";
-    public static final String ROUTING_KEY_PATTERN = "chat.room.#";
+//    public static final String ROUTING_KEY_PATTERN = "chat.room.#";
+public static final String ROUTING_KEY_PATTERN = "chat.#";
 
     @Bean
     public TopicExchange chatExchange() {

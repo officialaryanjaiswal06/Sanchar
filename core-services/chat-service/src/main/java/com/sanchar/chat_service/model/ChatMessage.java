@@ -31,4 +31,7 @@ public class ChatMessage implements Serializable {
 
     @Field("ts")
     private Instant timestamp;
+
+    @Field("st")
+    private MessageStatus status;
 }

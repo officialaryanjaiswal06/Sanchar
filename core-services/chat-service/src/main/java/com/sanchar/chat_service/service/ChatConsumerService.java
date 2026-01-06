@@ -1,16 +1,21 @@
 package com.sanchar.chat_service.service;
+import com.mongodb.client.result.UpdateResult;
 import com.sanchar.chat_service.config.RabbitConfig;
 import com.sanchar.chat_service.model.ChatBucket;
 import com.sanchar.chat_service.model.ChatMessage;
 import com.sanchar.chat_service.model.Conversation;
+import com.sanchar.chat_service.model.MessageAck;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,11 +24,13 @@ import java.time.ZoneId;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@RabbitListener(queues = RabbitConfig.DB_QUEUE)
 public class ChatConsumerService {
 
     private final MongoTemplate mongoTemplate;
 
-    @RabbitListener(queues = RabbitConfig.DB_QUEUE)
+//    @RabbitListener(queues = RabbitConfig.DB_QUEUE)
+    @RabbitHandler
     public void persistMessage(ChatMessage message) {
         try {
             saveToBucket(message);
@@ -34,6 +41,34 @@ public class ChatConsumerService {
             // Throwing allows RabbitMQ to requeue/dead-letter the message (Reliability)
             throw e;
         }
+    }
+
+    @RabbitHandler
+    @Retryable(
+            value = {MessageNotFoundException.class},
+            maxAttempts = 5,           // Try 5 times
+            backoff = @Backoff(delay = 1000) // Wait 1 second between tries
+    )
+    public void handleAck(MessageAck ack) {
+        log.info("Processing Ack: {} -> {}", ack.getStatus(), ack.getMessageId());
+
+        // 1. Build Query: Match Room AND the specific Message inside array
+        Query query = Query.query(Criteria.where("rid").is(ack.getRoomId())
+                .and("msgs.mid").is(ack.getMessageId()));
+
+        // 2. Positional Update ($): Set status of matched item
+        Update update = new Update().set("msgs.$.st", ack.getStatus());
+
+        // 3. Execute
+        UpdateResult result = mongoTemplate.updateFirst(query, update, ChatBucket.class);
+
+        // 4. VERIFY: Did we actually find the message?
+        if (result.getMatchedCount() == 0) {
+            log.warn("⏳ Race Condition: Message {} not found in DB yet. Retrying Ack...", ack.getMessageId());
+            throw new MessageNotFoundException(); // Triggers Retry
+        }
+
+        log.info("✅ Status updated to {} for msg {}", ack.getStatus(), ack.getMessageId());
     }
 
     private void saveToBucket(ChatMessage message) {
@@ -79,8 +114,10 @@ public class ChatConsumerService {
         update.set("otherUserId", friend);
         update.set("roomId", msg.getRoomId());
         update.set("lastMessage", msg.getContent());
+        update.set("lastMessageSenderId", msg.getSenderId());
         update.set("lastMessageTime", msg.getTimestamp());
 
         mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().upsert(true), Conversation.class);
     }
+    public static class MessageNotFoundException extends RuntimeException {}
 }

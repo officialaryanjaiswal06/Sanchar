@@ -19,12 +19,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/chat/history")
+@RequestMapping("/chat")
 @RequiredArgsConstructor
 public class ChatHistoryController {
     private final MongoTemplate mongoTemplate;
 
-    @GetMapping("/{roomId}")
+//    @GetMapping("/{roomId}")
+    @GetMapping("/history/{roomId}")
     public ResponseEntity<ApiResponse<List<ChatMessage>>> getChatHistory(
             @PathVariable String roomId,
             @RequestParam(defaultValue = "0") int page // For future pagination logic
